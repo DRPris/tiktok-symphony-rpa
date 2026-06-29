@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TikTok Symphony RPA - 审核面板</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%234f6ef7'/><text x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-size='16' font-weight='bold'>R</text></svg>">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <!-- ═══ Header ═══ -->
+  <header class="header">
+    <div class="header-left">
+      <div class="header-logo">R</div>
+      <div>
+        <div class="header-title">TikTok Symphony RPA <span class="header-subtitle">审核面板</span></div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-cancel" id="btn-open-selectors" onclick="window.__app.openSelectorsModal()" title="选择器管理（热更新）">⚙ 选择器</button>
+      <div class="ws-indicator">
+        <span class="ws-dot"></span>
+        <span class="ws-label">连接中…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══ System Status Bar ═══ -->
+  <div class="status-bar">
+    <div class="status-item">
+      <span class="status-item-dot gray" id="stat-browser-dot"></span>
+      <span>浏览器</span>
+      <span class="status-item-value" id="stat-browser">-</span>
+    </div>
+    <div class="status-item">
+      <span class="status-item-dot gray" id="stat-login-dot"></span>
+      <span>登录态</span>
+      <span class="status-item-value" id="stat-login">-</span>
+    </div>
+    <div class="status-item">
+      <span class="status-item-dot blue"></span>
+      <span>活跃任务</span>
+      <span class="status-item-value" id="stat-active">0</span>
+    </div>
+    <div class="status-item">
+      <span class="status-item-dot gray"></span>
+      <span>等待任务</span>
+      <span class="status-item-value" id="stat-pending">0</span>
+    </div>
+    <div class="status-item">
+      <span class="status-item-dot orange"></span>
+      <span>生成中</span>
+      <span class="status-item-value" id="stat-waiting">0</span>
+    </div>
+    <div class="status-item">
+      <span class="status-item-dot green"></span>
+      <span>可用Page</span>
+      <span class="status-item-value" id="stat-pages">0 / 0</span>
+    </div>
+    <div class="status-item">
+      <span class="status-item-dot red" id="stat-fail-dot"></span>
+      <span>24h失败</span>
+      <span class="status-item-value" id="stat-failed-recent">0</span>
+    </div>
+  </div>
+
+  <!-- ═══ Main Content ═══ -->
+  <main class="main">
+    <div class="toolbar">
+      <div class="filter-group">
+        <!-- Rendered by JS -->
+      </div>
+      <div class="toolbar-right">
+        <div class="task-summary">共 0 个任务</div>
+        <input type="file" id="upload-file-input" accept=".json,.xlsx,.xls" style="display:none" onchange="window.__app.handleFileUpload(event)">
+        <button class="btn btn-upload" onclick="document.getElementById('upload-file-input').click()" title="参考视频/图片请放入项目根的 assets/ 目录，Excel 里只需填文件名">↑ 批量导入</button>
+        <button class="btn btn-create" onclick="window.__app.showCreateModal()">＋ 新建任务</button>
+      </div>
+    </div>
+    <div class="task-grid">
+      <!-- Task cards rendered by JS -->
+    </div>
+  </main>
+
+  <!-- ═══ Task Detail Modal ═══ -->
+  <div class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">任务详情</div>
+        <button class="modal-close" onclick="window.__app.closeModal()" title="关闭">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Rendered by JS -->
+      </div>
+      <div class="modal-footer">
+        <!-- Action buttons rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Create Task Modal ═══ -->
+  <div class="modal-overlay" id="create-modal-overlay">
+    <div class="modal create-modal">
+      <div class="modal-header">
+        <div class="modal-title">新建任务</div>
+        <button class="modal-close" onclick="window.__app.closeCreateModal()" title="关闭">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="create-task-form" class="create-form">
+          <div class="form-group">
+            <label class="form-label">生成方式 <span class="required">*</span></label>
+            <div class="form-radio-group">
+              <label class="form-radio"><input type="radio" name="method" value="template" checked> 模板模式</label>
+              <label class="form-radio"><input type="radio" name="method" value="agent-mode"> Agent模式</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">商品链接 <span class="required">*</span></label>
+            <input type="url" class="form-input" name="productUrl" id="input-product-url" placeholder="https://...（必填，商品名称将自动从链接提取）" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">商品名称 <span style="font-size:11px;color:var(--text-secondary);font-weight:normal">（留空将由 AI 从链接自动提取）</span></label>
+            <input type="text" class="form-input" name="productName" placeholder="留空将由 AI 从商品链接自动提取（推荐）">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prompt <span class="required">*</span></label>
+            <textarea class="form-textarea" name="prompt" placeholder="支持模板变量：{{productName}} / {{audience}} / {{sellingPoints}} / {{country}} / {{persona}} / {{videoLanguage}}
+例如：Use TikTok trending video style to generate a video ad for {{productName}}, featuring {{persona}} speaking in {{videoLanguage}}. Targeting {{audience}}. Highlights: {{sellingPoints}}
+不使用变量也可以，系统会自动在末尾拼接各字段" rows="4" required></textarea>
+          </div>
+          <div class="form-group">
+            <div class="form-label-row">
+              <label class="form-label">商品卖点</label>
+              <button type="button" class="btn-ai-analyze" id="btn-ai-analyze"
+                      onclick="window.__app.analyzeSellingPoints()"
+                      title="根据商品链接自动提炼卖点，追加到现有内容后">
+                ✨ AI 分析卖点
+              </button>
+            </div>
+            <textarea class="form-textarea" name="sellingPoints" id="input-selling-points" placeholder="输入商品卖点（可选）" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <div class="form-label-row">
+              <label class="form-label">受众分析</label>
+              <button type="button" class="btn-ai-analyze" id="btn-ai-audience"
+                      onclick="window.__app.analyzeAudience()"
+                      title="根据商品链接自动识别目标受众，结果将融入 Prompt 提交">
+                🎯 AI 受众分析
+              </button>
+            </div>
+            <textarea class="form-textarea" name="audience" id="input-audience" placeholder="目标受众描述（可选，由 AI 自动生成英文描述）" rows="3"></textarea>
+          </div>
+
+          <!-- 国家识别区域：根据商品链接自动识别，可手动修改 -->
+          <div class="form-group" id="country-detect-group">
+            <div class="form-label-row">
+              <label class="form-label">🌏 国家 / 人物 / 语言 <span style="font-size:11px;color:var(--text-secondary);font-weight:normal">（根据商品链接自动识别）</span></label>
+            </div>
+            <div style="display:flex;gap:8px">
+              <input type="text" class="form-input" name="country" id="input-country" placeholder="国家（如 Thailand）" style="flex:1">
+              <input type="text" class="form-input" name="videoLanguage" id="input-video-language" placeholder="视频语言（如 Thai）" style="flex:1">
+            </div>
+            <textarea class="form-textarea" name="persona" id="input-persona" placeholder="视频人物形象（如 A young Thai person with a friendly appearance）" rows="2" style="margin-top:6px"></textarea>
+          </div>
+
+          <!-- AI 拽取产品图面板 -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label class="form-label">产品图（AI 从链接抽取）</label>
+              <button type="button" class="btn-ai-analyze" id="btn-scrape-images"
+                      onclick="window.__app.scrapeProductImages()"
+                      title="从商品链接拽取候选主图并由 Qwen-VL 按「清晰/主体突出/背景简洁」打分排序">
+                🖼 拽取产品图
+              </button>
+            </div>
+            <div id="image-picker-status" class="image-picker-status" style="display:none"></div>
+            <div id="image-picker-grid" class="image-picker-grid" style="display:none"></div>
+            <input type="hidden" name="productImages" id="input-product-images">
+          </div>
+
+          <div class="form-group" id="template-id-group">
+            <label class="form-label">模板ID</label>
+            <input type="text" class="form-input" name="templateId" placeholder="模板ID（模板模式可选）">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="window.__app.closeCreateModal()">取消</button>
+        <button class="btn btn-approve" id="btn-create-submit" onclick="window.__app.submitCreateTask(this)">创建任务</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Toast Container ═══ -->
+  <!-- ═══ Batch Preview Modal ═══ -->
+  <div class="modal-overlay" id="batch-preview-overlay">
+    <div class="modal batch-preview-modal">
+      <div class="modal-header">
+        <h3>📊 AI 补全预览 / 编辑</h3>
+        <button class="modal-close" onclick="window.__app.closeBatchPreview()">×</button>
+      </div>
+      <div class="modal-body batch-preview-body">
+        <div class="batch-preview-toolbar">
+          <span id="batch-preview-summary"></span>
+          <div>
+            <button class="btn btn-upload" onclick="window.__app.exportBatchExcel()" title="导出当前补全结果为 Excel 文件">⬇ 导出 Excel</button>
+            <button class="btn btn-approve" onclick="window.__app.selectAllBatchRows(true)">全选</button>
+            <button class="btn btn-reject" onclick="window.__app.selectAllBatchRows(false)">全不选</button>
+          </div>
+        </div>
+        <div class="batch-preview-table-wrap">
+          <table class="batch-preview-table" id="batch-preview-table">
+            <thead>
+              <tr>
+                <th class="col-check">✓</th>
+                <th class="col-idx">#</th>
+                <th class="col-name">商品名称</th>
+                <th class="col-sp">卖点</th>
+                <th class="col-prompt">Prompt</th>
+                <th class="col-images">产品图</th>
+                <th class="col-src">来源</th>
+              </tr>
+            </thead>
+            <tbody id="batch-preview-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer batch-preview-footer">
+        <button class="btn" onclick="window.__app.closeBatchPreview()">取消</button>
+        <button class="btn btn-create" id="btn-batch-confirm" onclick="window.__app.confirmBatchCreate()">✅ 确认创建任务</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container"></div>
+
+  <!-- ═══ Selector Manager Modal ═══ -->
+  <div class="modal-overlay" id="selectors-modal-overlay">
+    <div class="modal selector-modal">
+      <div class="modal-header">
+        <div class="modal-title">⚙ 选择器管理（热更新）</div>
+        <button class="modal-close" onclick="window.__app.closeSelectorsModal()" title="关闭">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px;color:var(--text-secondary);margin:0 0 12px">
+          仅修改需要调整的项；其他项会使用出厂默认值。保存后立即生效，无需重启。
+        </p>
+        <div id="selector-table-wrap"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="window.__app.resetAllSelectorOverrides()">恢复默认</button>
+        <button class="btn btn-approve" onclick="window.__app.saveSelectorOverrides()">保存生效</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Failure Diagnostic Modal ═══ -->
+  <div class="modal-overlay" id="diag-modal-overlay">
+    <div class="modal diag-modal">
+      <div class="modal-header">
+        <div class="modal-title">🔍 失败诊断</div>
+        <button class="modal-close" onclick="window.__app.closeDiagModal()" title="关闭">&times;</button>
+      </div>
+      <div class="modal-body" id="diag-modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" onclick="window.__app.closeDiagModal()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

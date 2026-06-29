@@ -1,0 +1,32 @@
+{
+  "name": "tiktok-symphony-rpa",
+  "version": "1.0.0",
+  "description": "TikTok Symphony RPA System",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "login": "ts-node src/browser/session.ts --login",
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "build": "tsc",
+    "daily-review": "ts-node src/daily-review/cli.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "express": "^4.21.0",
+    "playwright": "^1.52.0",
+    "sharp": "^0.35.1",
+    "uuid": "^11.1.0",
+    "ws": "^8.18.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "@types/sharp": "^0.31.1",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.5.0",
+    "nodemon": "^3.1.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.7.0"
+  }
+}

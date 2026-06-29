@@ -1,0 +1,5 @@
+产品名,模式,URL,图片路径,prompt,语言,脚本,形象ID,风格,额外参数
+产品A,generate_remix,https://example.com/product-a,,时尚电商广告风格,English,,,,
+产品B,image_to_video,,/path/to/product_b.jpg,展示产品特写和使用场景,English,,,,
+产品C,ai_avatar,,,介绍产品功能,English,大家好这是一款优秀的产品,avatar_001,,
+产品D,text_to_video,,,A premium product showcase video,English,,,cinematic,

@@ -1,0 +1,82 @@
+操作步骤
+方式一：
+	•	进入主页
+
+下滑
+
+选定模板
+点击模板进入详情页
+
+然后点击generate your own
+点击之后进入video generatation 页面
+
+
+复制提示词
+然后跳转到agent模式
+上传需要替换的商品，并把提示词修改成对应的商品/图片, 增加必要的prompt，我会准备商品卖点一起给到
+点击箭头进入生成模式
+
+进入对话页面，生成结束之后AI会返回按钮让人类确认brief是否合理/是否要进入下一步
+可以直接在对话框修改，也可以直接在brief侧进行修改
+确认无误之后点击Looks great，let‘s move on to the storyboard
+
+进入分镜生成和审核模式
+
+修改模式和之前一致，可以直接在分镜内容里修改，也可以直接在对话框内修改
+
+根据分镜生成的条件判断具体选项，是继续生成（点击Looks great，let‘s move on to the 
+storyboard）或者别的需求
+
+
+
+然后等待生成了；这里支持新开页面继续输入需求
+
+模型正在忙，生成失败，这时候应该点击重新生成“please try again”
+
+需要等待5-15分钟，api才能返回结果
+
+生成好之后点击视频进入右侧播放器审核
+
+如果视频符合预期，则直接点击download按钮
+
+
+如果视频不符合预期，则继续通过对话框或者预设提示词进行修改，直至满意
+
+
+
+方式二
+
+登陆后直接进入agent模式
+
+点击进入trending template 或者top performing ads
+
+Template进入后直接下滑挑选即可
+
+此处我们用top ads trends做示例
+	•	输入筛选项
+
+	•	选定之后直接点击select
+
+点击select之后进入prompt输入模式
+
+补充好所有需要展示在视频里的部分，然后点击箭头
+
+如果一切都没有问题，对话框点击确认（点击Looks great，let‘s move on to the 
+storyboard）
+
+分镜确认无误后，点击“Looks good, let's generate the storyboard!”进入分镜脚本生成部分
+
+确认好分镜之后，继续点击“Looks good, let's generate the storyboard!”， 进入视频生成部分
+
+
+需要等待5-15分钟，api才能返回结果
+这次遇到了风控导致生成失败，需要点击“let’s try generating the video again!”
+
+生成好后点击视频进入播放器页面
+如果表现好可以直接download
+
+如果表现不好，入截图所示有穿帮，需要继续修改，则继续输入直至脚本让人满意
+
+
+
+继续等待，重复之前的步骤··/生成也是一样的

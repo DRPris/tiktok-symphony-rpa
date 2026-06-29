@@ -1,0 +1,46 @@
+node_modules/
+dist/
+downloads/
+user-data/
+
+# 环境变量（含 LLM API Key，禁止入库）
+.env
+.env.local
+
+# 日志与截图
+*.log
+npm-debug.log*
+logs/
+
+# 运行时生成的数据
+data/tasks.json
+data/snapshots/
+data/batch-*.json
+
+# 抓取的商品图片（运行时生成）
+assets/scraped/
+
+# Qoder 生成的仓库文档
+.qoder/
+
+# 调试文件
+debug-symphony.png
+
+# 大体积 PDF
+*.pdf
+
+# Python 虚拟环境
+quest模式方案/output/
+quest模式方案/storage/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 提取的文档媒体文件
+docs/docx_extracted/
+
+# IDE
+.idea/
+.vscode/
+.DS_Store

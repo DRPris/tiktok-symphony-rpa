@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Editorial fonts via Google Fonts (loaded via <link> in layout). */
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html,
+  body {
+    background: #0b0b0d;
+    color: #ededea;
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background-image:
+      radial-gradient(60% 50% at 50% -10%, rgba(212, 255, 58, 0.06), transparent 70%),
+      radial-gradient(80% 60% at 100% 100%, rgba(91, 157, 255, 0.05), transparent 60%),
+      linear-gradient(180deg, #0a0a0c 0%, #0b0b0d 100%);
+    min-height: 100vh;
+    letter-spacing: -0.005em;
+  }
+  ::selection {
+    background: #d4ff3a;
+    color: #0a0a0a;
+  }
+  /* Scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #22222a;
+    border-radius: 999px;
+    border: 2px solid #0b0b0d;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3a3a46;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-md border border-ink-400/70 bg-ink-100/80 backdrop-blur-sm;
+  }
+  .hairline {
+    background-image: linear-gradient(
+      to right,
+      transparent,
+      rgba(255, 255, 255, 0.12) 20%,
+      rgba(255, 255, 255, 0.12) 80%,
+      transparent
+    );
+    height: 1px;
+  }
+  .label-eyebrow {
+    @apply text-[10px] uppercase tracking-widest2 text-ink-700 font-mono;
+  }
+  .num {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xs px-4 h-9 text-[12px]
+           uppercase tracking-widest2 font-mono transition-all duration-200
+           border whitespace-nowrap;
+  }
+  .btn-primary {
+    @apply bg-lime text-ink-0 border-lime hover:bg-lime/90 hover:shadow-accent
+           active:translate-y-px;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-bone border-ink-500 hover:border-ink-700 hover:bg-ink-200;
+  }
+  .btn-danger {
+    @apply bg-transparent text-ember border-ember/40 hover:bg-ember/10;
+  }
+  .btn-sm {
+    @apply h-7 px-3 text-[10px];
+  }
+  .input {
+    @apply w-full bg-ink-50 border border-ink-400 rounded-xs px-3 h-9
+           text-[13px] text-bone placeholder:text-ink-700
+           focus:outline-none focus:border-lime/60 focus:ring-1 focus:ring-lime/20
+           transition-colors font-sans;
+  }
+  .field-label {
+    @apply text-[11px] uppercase tracking-widest2 text-ink-800 font-mono mb-2 block;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1.5 px-2 h-5 text-[10px] font-mono uppercase
+           tracking-widest2 rounded-xs border;
+  }
+  .table-cell {
+    @apply px-4 py-3 text-[12.5px] align-middle;
+  }
+  .table-head {
+    @apply px-4 py-3 text-[10px] uppercase tracking-widest2 text-ink-800
+           font-mono text-left bg-ink-50/50 border-b border-ink-400;
+  }
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-1 focus-visible:ring-lime/40
+           focus-visible:ring-offset-2 focus-visible:ring-offset-ink-50;
+  }
+}
+
+/* utility for asymmetric grain */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  mix-blend-mode: overlay;
+  opacity: 0.6;
+}
+
+.diag-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.04) 0,
+    rgba(255, 255, 255, 0.04) 1px,
+    transparent 1px,
+    transparent 8px
+  );
+}
+
+.glow-line {
+  background: linear-gradient(90deg, transparent, #d4ff3a, transparent);
+  filter: blur(1px);
+}
