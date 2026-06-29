@@ -1161,6 +1161,15 @@
         return;
       }
 
+      // 【venture + productId → URL 批量解析】
+      // 检测含 venture+productId 但缺 productUrl 的行，自动复原为完整 URL
+      const hasVentureItems = items.some(
+        (it) => !it.productUrl && (it.venture || it.productId),
+      );
+      if (hasVentureItems) {
+        await batchResolveVentureUrls(items);
+      }
+
       // 验证必填字段
       const validMethods = ['template', 'agent-mode'];
       for (let i = 0; i < items.length; i++) {
@@ -1832,6 +1841,135 @@
     }
   }
 
+  // ============================================================
+  // 【venture + productId → URL 解析】
+  // 用户原始数据可能只有 venture 和 productId，本模块将其复原为完整 URL
+  // ============================================================
+
+  /** 切换 venture+productId 输入区域的显示/隐藏 */
+  function toggleVentureMode() {
+    const group = document.getElementById('venture-input-group');
+    const toggle = document.getElementById('toggle-venture-mode');
+    if (!group || !toggle) return;
+    const isHidden = group.style.display === 'none';
+    group.style.display = isHidden ? 'block' : 'none';
+    toggle.textContent = isHidden
+      ? '← 返回直接输入链接'
+      : '没有完整链接？用 venture + product ID';
+    if (isHidden) {
+      // 展开时自动聚焦 venture 输入框
+      const ventureInput = document.getElementById('input-venture');
+      if (ventureInput) ventureInput.focus();
+    }
+  }
+
+  /** 调用后端 API 将 venture + productId 解析为完整商品链接 */
+  async function resolveUrlFromVenture() {
+    const ventureInput = document.getElementById('input-venture');
+    const productIdInput = document.getElementById('input-product-id');
+    const urlInput = document.getElementById('input-product-url');
+    const btn = document.getElementById('btn-resolve-url');
+    if (!ventureInput || !productIdInput || !urlInput) return;
+
+    const venture = ventureInput.value.trim().toUpperCase();
+    const productId = productIdInput.value.trim();
+
+    if (!venture) {
+      showToast('⚠️', '请输入 venture（如 PH、TH、MY）');
+      ventureInput.focus();
+      return;
+    }
+    if (!productId) {
+      showToast('⚠️', '请输入 product ID');
+      productIdInput.focus();
+      return;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ 解析中…'; }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/resolve-product-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ venture, productId, followRedirect: true }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        showToast('⚠️ 解析失败', data.error || '无法解析 URL');
+        return;
+      }
+
+      // 填入商品链接输入框
+      const finalUrl = data.finalUrl || data.constructedUrl;
+      urlInput.value = finalUrl;
+      urlInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+      // 自动收起 venture 输入区域
+      const group = document.getElementById('venture-input-group');
+      const toggle = document.getElementById('toggle-venture-mode');
+      if (group) group.style.display = 'none';
+      if (toggle) toggle.textContent = '没有完整链接？用 venture + product ID';
+
+      const redirectNote = data.redirected ? '（已跟随重定向补全 sellerId）' : '';
+      const countryNote = data.venture?.country ? ` → ${data.venture.country}` : '';
+      showToast('✅ 解析成功', `${finalUrl.slice(0, 60)}...${redirectNote}${countryNote}`);
+
+      // 自动触发国家识别
+      autoDetectCountry(finalUrl);
+    } catch (err) {
+      showToast('⚠️ 网络错误', err.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '解析链接'; }
+    }
+  }
+
+  /** 批量解析：将 items 中含 venture+productId 但无 productUrl 的行自动解析 */
+  async function batchResolveVentureUrls(items) {
+    const targets = items
+      .map((it, idx) => ({ it, idx }))
+      .filter(({ it }) =>
+        !it.productUrl && (it.venture || it.productId),
+      );
+
+    if (targets.length === 0) return;
+
+    showToast('🔗 批量解析链接', `正在将 ${targets.length} 行 venture+productId 复原为 URL…`);
+
+    const apiItems = targets.map(({ it }) => ({
+      venture: String(it.venture || '').trim(),
+      productId: String(it.productId || '').trim(),
+    }));
+
+    try {
+      const res = await fetch(`${API_BASE}/api/resolve-product-urls`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: apiItems, followRedirect: true }),
+      });
+      const data = await res.json();
+
+      if (!data.success || !Array.isArray(data.results)) return;
+
+      let okCount = 0;
+      for (const r of data.results) {
+        const target = targets[r.index];
+        if (!target) continue;
+        if (r.productUrl) {
+          target.it.productUrl = r.productUrl;
+          okCount++;
+        }
+        if (r.error) {
+          console.warn(`[batch-resolve] 第 ${r.index + 1} 行解析失败: ${r.error}`);
+        }
+      }
+      showToast('✅ 批量解析完成', `${okCount}/${targets.length} 行成功复原 URL`);
+    } catch (err) {
+      console.error('[batch-resolve] 批量解析失败:', err.message);
+      showToast('⚠️ 批量解析失败', err.message);
+    }
+  }
+
   // ─── 暴露给 HTML onclick 的接口 ──────────────
   window.__app = {
     approveTask,
@@ -1846,6 +1984,9 @@
     analyzeSellingPoints,
     analyzeAudience,
     scrapeProductImages,
+    // venture + productId 模式
+    toggleVentureMode,
+    resolveUrlFromVenture,
     // 选择器管理
     openSelectorsModal,
     closeSelectorsModal,

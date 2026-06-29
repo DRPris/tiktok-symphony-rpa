@@ -31,6 +31,12 @@ import {
   snapshotAbsoluteDir,
   readSnapshotMeta,
 } from '../automation/failure-snapshot';
+import {
+  resolveProductUrl,
+  constructProductUrl,
+  extractFromUrl,
+  getVentureInfo,
+} from '../utils/venture-map';
 
 /**
  * 将用户填的素材路径解析为绝对路径
@@ -933,6 +939,204 @@ export function createApiServer(
         await page.close();
       }
     })
+  );
+
+  /**
+   * POST /api/resolve-product-url - 通过 venture + productId 复原 Lazada 商品 URL
+   *
+   * 入参：{ venture: string, productId: string, followRedirect?: boolean }
+   * 出参：{ success, constructedUrl, finalUrl, redirected, venture, productId }
+   *
+   * 使用场景：用户原始数据只有 venture（如 "PH"）和 productId（如 "4738495529"），
+   * 本端点将其复原为完整 Lazada 商品 URL，可直接传给商品解析 Agent。
+   */
+  app.post(
+    '/api/resolve-product-url',
+    asyncHandler(async (req, res) => {
+      const venture: string = req.body?.venture?.toString().trim() || '';
+      const productId: string = req.body?.productId?.toString().trim() || '';
+      const followRedirect: boolean = req.body?.followRedirect !== false;
+
+      if (!venture) {
+        res.status(400).json({ success: false, error: 'venture 必填' });
+        return;
+      }
+      if (!productId) {
+        res.status(400).json({ success: false, error: 'productId 必填' });
+        return;
+      }
+
+      // 先快速校验是否能构造 URL（不等待重定向）
+      const quickUrl = constructProductUrl(venture, productId);
+      if (!quickUrl) {
+        res.status(400).json({
+          success: false,
+          error:
+            '无法识别 venture 或 productId 格式。venture 支持国家码（TH/PH/MY/SG/ID/VN）或域名（lazada.com.ph）；productId 支持纯数字、i123-s456 等格式。',
+        });
+        return;
+      }
+
+      console.log(
+        `[API] resolve-product-url: venture=${venture}, productId=${productId} -> ${quickUrl}`,
+      );
+
+      try {
+        const result = await resolveProductUrl(venture, productId, {
+          followRedirect,
+          redirectTimeout: 10000,
+        });
+
+        if (!result) {
+          res.status(400).json({
+            success: false,
+            error: 'URL 构造失败，请检查 venture 和 productId 格式',
+          });
+          return;
+        }
+
+        res.json({
+          success: true,
+          constructedUrl: result.constructedUrl,
+          finalUrl: result.finalUrl,
+          redirected: result.redirected,
+          venture: result.venture,
+          productId: result.productId,
+        });
+      } catch (err: any) {
+        // 即使重定向失败，也返回构造的 URL
+        console.error('[API] resolve-product-url 重定向失败:', err.message);
+        res.json({
+          success: true,
+          constructedUrl: quickUrl,
+          finalUrl: quickUrl,
+          redirected: false,
+          warning: `重定向跟随失败: ${err.message}，返回未解析的 URL`,
+        });
+      }
+    }),
+  );
+
+  /**
+   * POST /api/resolve-product-urls - 批量通过 venture + productId 复原 URL
+   *
+   * 入参：{ items: [{ venture, productId }], followRedirect?: boolean }
+   * 出参：{ success, results: [{ venture, productId, productUrl, finalUrl?, error? }] }
+   */
+  app.post(
+    '/api/resolve-product-urls',
+    asyncHandler(async (req, res) => {
+      const items: Array<{ venture: string; productId: string }> =
+        req.body?.items;
+      const followRedirect: boolean = req.body?.followRedirect !== false;
+
+      if (!Array.isArray(items) || items.length === 0) {
+        res.status(400).json({ success: false, error: 'items 必须是非空数组' });
+        return;
+      }
+
+      if (items.length > 50) {
+        res.status(400).json({
+          success: false,
+          error: '单次最多处理 50 条，请分批提交',
+        });
+        return;
+      }
+
+      const results = await Promise.all(
+        items.map(async (item, idx) => {
+          const venture = item.venture?.toString().trim() || '';
+          const productId = item.productId?.toString().trim() || '';
+
+          if (!venture || !productId) {
+            return {
+              index: idx,
+              venture,
+              productId,
+              productUrl: '',
+              error: 'venture 或 productId 为空',
+            };
+          }
+
+          try {
+            const result = await resolveProductUrl(venture, productId, {
+              followRedirect,
+              redirectTimeout: 10000,
+            });
+            if (!result) {
+              return {
+                index: idx,
+                venture,
+                productId,
+                productUrl: '',
+                error: '无法识别 venture 或 productId 格式',
+              };
+            }
+            return {
+              index: idx,
+              venture: result.venture.ventureCode,
+              productId: item.productId,
+              productUrl: result.finalUrl,
+              constructedUrl: result.constructedUrl,
+              redirected: result.redirected,
+            };
+          } catch (err: any) {
+            const fallback = constructProductUrl(venture, productId);
+            return {
+              index: idx,
+              venture,
+              productId,
+              productUrl: fallback || '',
+              error: err.message,
+            };
+          }
+        }),
+      );
+
+      const succeeded = results.filter((r) => !r.error).length;
+      console.log(
+        `[API] resolve-product-urls: 批量解析完成 ${succeeded}/${results.length}`,
+      );
+
+      res.json({ success: true, results });
+    }),
+  );
+
+  /**
+   * POST /api/extract-venture-product - 从 Lazada URL 反向提取 venture 和 productId
+   *
+   * 入参：{ productUrl: string }
+   * 出参：{ success, venture, productId, itemId, sellerId }
+   */
+  app.post(
+    '/api/extract-venture-product',
+    asyncHandler(async (req, res) => {
+      const productUrl: string = req.body?.productUrl?.toString().trim() || '';
+      if (!productUrl) {
+        res.status(400).json({ success: false, error: 'productUrl 必填' });
+        return;
+      }
+
+      const extracted = extractFromUrl(productUrl);
+      if (!extracted) {
+        res.status(400).json({
+          success: false,
+          error: '无法从 URL 中提取 venture 和 productId，请确认是 Lazada 商品链接',
+        });
+        return;
+      }
+
+      const ventureInfo = getVentureInfo(extracted.venture);
+      res.json({
+        success: true,
+        venture: extracted.venture,
+        productId: extracted.productId,
+        itemId: extracted.itemId,
+        sellerId: extracted.sellerId,
+        domain: ventureInfo?.domain || '',
+        country: ventureInfo?.country || '',
+      });
+    }),
   );
 
   // 404 兑底处理

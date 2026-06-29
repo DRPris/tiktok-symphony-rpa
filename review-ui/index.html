@@ -117,8 +117,33 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">商品链接 <span class="required">*</span></label>
+            <label class="form-label">
+              商品链接 <span class="required">*</span>
+              <a href="javascript:void(0)" id="toggle-venture-mode" style="font-size:12px;color:var(--accent);font-weight:normal;margin-left:8px" onclick="window.__app.toggleVentureMode()">没有完整链接？用 venture + product ID</a>
+            </label>
             <input type="url" class="form-input" name="productUrl" id="input-product-url" placeholder="https://...（必填，商品名称将自动从链接提取）" required>
+          </div>
+
+          <!-- venture + productId 输入区域（默认隐藏） -->
+          <div class="form-group" id="venture-input-group" style="display:none">
+            <label class="form-label" style="font-size:12px;color:var(--text-secondary)">输入 venture（如 PH）和 product ID（如 4738495529），系统自动复原为完整商品链接</label>
+            <div style="display:flex;gap:8px;align-items:flex-end">
+              <div style="flex:0 0 120px">
+                <input type="text" class="form-input" id="input-venture" placeholder="PH / TH / MY…" style="text-transform:uppercase" list="venture-list">
+                <datalist id="venture-list">
+                  <option value="TH">Thailand (lazada.co.th)</option>
+                  <option value="PH">Philippines (lazada.com.ph)</option>
+                  <option value="MY">Malaysia (lazada.com.my)</option>
+                  <option value="SG">Singapore (lazada.sg)</option>
+                  <option value="ID">Indonesia (lazada.co.id)</option>
+                  <option value="VN">Vietnam (lazada.vn)</option>
+                </datalist>
+              </div>
+              <div style="flex:1">
+                <input type="text" class="form-input" id="input-product-id" placeholder="Product ID（如 4738495529 或 i4738495529-s28630725476）">
+              </div>
+              <button type="button" class="btn btn-approve" id="btn-resolve-url" onclick="window.__app.resolveUrlFromVenture()" style="white-space:nowrap">解析链接</button>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">商品名称 <span style="font-size:11px;color:var(--text-secondary);font-weight:normal">（留空将由 AI 从链接自动提取）</span></label>
